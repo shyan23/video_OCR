@@ -5,3 +5,9 @@ pytesseract==0.3.10
 opencv-python-headless==4.8.1.78
 pillow==10.1.0
 numpy==1.26.2
+
+# Multi-Engine OCR (PaddleOCR for better accuracy)
+# Using CPU-optimized version for APU systems
+paddlepaddle==2.5.2  # Stable CPU version
+paddleocr==2.7.3     # Compatible with PaddlePaddle 2.5.2
+shapely==2.0.2       # Required by PaddleOCR

@@ -6,13 +6,11 @@ Speed-optimized for SD/720p video with deterministic Tesseract OCR.
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from preprocessor import preprocess_image_fast, preprocess_image_quality
-# New multi-engine OCR system
-from ocr_engine_new import (
-    extract_text_best,
-    extract_text_maximum_accuracy,
+from ocr_engine import (
     extract_text_fast,
-    extract_code,
+    extract_text_accurate,
     extract_text_with_confidence,
+    extract_code,
     test_tesseract_installation
 )
 import time
@@ -76,13 +74,13 @@ async def test_installation():
 
 
 @app.post("/ocr")
-async def ocr_endpoint(
+async def ocr_fast(
     file: UploadFile = File(...),
     mode: str = "fast"
 ) -> Dict[str, Any]:
     """
-    Multi-Engine OCR endpoint with PaddleOCR + Tesseract.
-    Now delivers 95-99% accuracy using PaddleOCR as primary engine.
+    Fast OCR endpoint (default).
+    Optimized for speed with 88-92% accuracy on SD/720p video.
 
     Args:
         file: Image file (WebP/JPEG/PNG)
@@ -92,15 +90,10 @@ async def ocr_endpoint(
         {
             "text": "extracted text...",
             "processing_time_ms": 123.45,
-            "mode": "fast",
-            "engine": "paddle|tesseract"
+            "mode": "fast"
         }
 
-    Performance:
-        - Fast mode: ~100-200ms (PaddleOCR)
-        - Quality mode: ~200-400ms (Multi-pass + ensemble)
-
-    Accuracy: 95-99% on video captures (vs 88-92% with Tesseract-only)
+    Performance: ~50-95ms total processing time
     """
     start_time = time.time()
 
@@ -122,26 +115,21 @@ async def ocr_endpoint(
         else:
             processed_img = preprocess_image_fast(contents)
 
-        # Extract text using new multi-engine system
+        # Extract text
         if mode == "quality":
-            # Use multi-pass for maximum accuracy
-            text = extract_text_best(processed_img)
-            engine_used = "multi_pass"
+            text = extract_text_accurate(processed_img)
         else:
-            # Fast mode - PaddleOCR if available, Tesseract fallback
             text = extract_text_fast(processed_img)
-            engine_used = "paddle_or_tesseract"
 
         # Calculate processing time
         elapsed_ms = (time.time() - start_time) * 1000
 
-        logger.info(f"OCR completed in {elapsed_ms:.2f}ms (mode: {mode}, engine: {engine_used})")
+        logger.info(f"OCR completed in {elapsed_ms:.2f}ms (mode: {mode})")
 
         return {
             "text": text,
             "processing_time_ms": round(elapsed_ms, 2),
             "mode": mode,
-            "engine": engine_used,
             "character_count": len(text)
         }
 
@@ -155,22 +143,11 @@ async def ocr_endpoint(
 @app.post("/ocr/accurate")
 async def ocr_accurate(file: UploadFile = File(...)) -> Dict[str, Any]:
     """
-    Maximum Accuracy OCR endpoint using ensemble method.
-    Runs multiple OCR engines and merges results.
+    Higher accuracy OCR endpoint.
+    Uses both legacy + LSTM engines with character whitelist.
 
-    Uses:
-    - PaddleOCR (PP-OCRv4) - state of the art
-    - Tesseract OEM 3 with full dictionaries
-    - Multi-pass validation
-    - Post-processing error correction
-
-    Performance: ~300-600ms (slowest but most accurate)
-    Accuracy: 98-99%+ even on poor quality video
-
-    Best for:
-    - Critical text extraction
-    - Low quality/compressed video
-    - Text with unusual fonts or formatting
+    Performance: ~80-150ms (slower but more accurate)
+    Accuracy: 92-95% on SD/720p video
     """
     start_time = time.time()
 
@@ -180,28 +157,21 @@ async def ocr_accurate(file: UploadFile = File(...)) -> Dict[str, Any]:
         if len(contents) > 5_000_000:
             raise HTTPException(400, "File too large (max 5MB)")
 
-        # Use maximum quality preprocessing
+        # Use quality preprocessing
         processed_img = preprocess_image_quality(contents)
 
-        # Use ensemble OCR for maximum accuracy
-        result = extract_text_maximum_accuracy(processed_img)
+        # Use accurate OCR
+        text = extract_text_accurate(processed_img)
 
         elapsed_ms = (time.time() - start_time) * 1000
 
-        logger.info(
-            f"Ensemble OCR completed in {elapsed_ms:.2f}ms "
-            f"(engine: {result.get('engine', 'unknown')}, "
-            f"confidence: {result.get('confidence', 0):.1f}%)"
-        )
+        logger.info(f"Accurate OCR completed in {elapsed_ms:.2f}ms")
 
         return {
-            "text": result['text'],
+            "text": text,
             "processing_time_ms": round(elapsed_ms, 2),
-            "mode": "ensemble",
-            "engine": result.get('engine', 'unknown'),
-            "confidence": result.get('confidence', 0),
-            "method": result.get('method', 'unknown'),
-            "character_count": len(result['text'])
+            "mode": "accurate",
+            "character_count": len(text)
         }
 
     except ValueError as e:
