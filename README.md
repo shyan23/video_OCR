@@ -2,10 +2,6 @@
 
 Speed-optimized Chrome extension + Python backend for extracting text from video frames using Tesseract OCR.
 
-**Performance:** 100-225ms total (client + network + OCR)
-**Accuracy:** 88-92% for SD/720p video, 92-95% for HD
-**Architecture:** Deterministic, privacy-focused, no AI/ML
-
 ---
 
 ## 📋 Features
@@ -130,10 +126,10 @@ The backend supports multiple OCR endpoints:
 
 | Endpoint | Speed | Accuracy | Use Case |
 |----------|-------|----------|----------|
-| `/ocr` (default) | ~50-95ms | 88-92% | Fast, general purpose |
-| `/ocr/accurate` | ~80-150ms | 92-95% | Higher accuracy |
-| `/ocr/code` | ~50-95ms | 88-92% | Preserves indentation |
-| `/ocr/confidence` | ~60-110ms | 88-92% | Returns confidence scores |
+| `/ocr` (default) |
+| `/ocr/accurate`  
+| `/ocr/code`
+| `/ocr/confidence` 
 
 To use a different mode, modify `background.js`:
 ```javascript
@@ -167,55 +163,24 @@ Access at `http://localhost:8000`
 
 ## 📊 Performance Metrics
 
-### Client-Side Processing (~30ms)
-1. Capture video frame: ~10ms
-2. Scale down (if >1000px): ~5ms
-3. Convert to grayscale: ~5ms
-4. Boost contrast: ~3ms
-5. Encode to WebP: ~12ms
+### Client-Side Processing 
+1. Capture video frame:
+2. Scale down (if >1000px):
+3. Convert to grayscale: 
+4. Boost contrast: 
+5. Encode to WebP: 
 
-### Network (~20-80ms)
+### Network
 - Upload size: 2-15KB (grayscale WebP at 0.85 quality)
 - Depends on connection speed
 
-### Backend Processing (~50-95ms)
-1. Otsu threshold: ~5ms
-2. Light sharpen: ~10ms
-3. Tesseract OCR (OEM 1, PSM 3): ~50ms
-
-**Total: 100-225ms** (average: ~170ms)
+### Backend Processing 
+1. Otsu threshold:
+2. Light sharpen: 
+3. Tesseract OCR (OEM 1, PSM 3):
 
 ---
 
-## 🔍 Troubleshooting
-
-### "Cannot connect to backend"
-
-1. Check backend is running: `curl http://localhost:8000/health`
-2. Check firewall/port 8000 is open
-3. Verify API URL in extension settings
-
-### "Tesseract not found"
-
-1. Verify Tesseract is installed: `tesseract --version`
-2. Check it's in PATH: `which tesseract` (Linux/Mac)
-3. Restart terminal after installation
-
-### Low OCR Accuracy
-
-1. Use `/ocr/accurate` endpoint for better results
-2. Increase video quality (HD instead of SD)
-3. Select larger text regions
-4. Ensure text is clearly visible (pause video if blurry)
-
-### Extension Not Working
-
-1. Check console for errors (F12 → Console)
-2. Reload extension in `chrome://extensions/`
-3. Refresh the video page
-4. Check extension has permissions for the site
-
----
 
 ## 📈 Optimization Tips
 
